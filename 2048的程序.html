@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2048 物理阻塞版 - 数字不穿墙不循环</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #141E30 0%, #243B55 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #fff;
+        }
+        
+        .container {
+            max-width: 850px;
+            margin: 0 auto;
+            background: rgba(249, 247, 238, 0.93);
+            border-radius: 12px;
+            padding: 22px;
+            box-shadow: 0 10px 35px rgba(0, 0, 0, 0.25);
+            color: #333;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 22px;
+        }
+        
+        h1 {
+            color: #483C32;
+            margin-bottom: 8px;
+            font-size: 30px;
+            letter-spacing: 1px;
+        }
+        
+        .subtitle {
+            color: #8B7355;
+            font-size: 13px;
+        }
+        
+        .status-bar {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            margin-bottom: 22px;
+            padding: 16px;
+            background: #EDEAE0;
+            border-radius: 9px;
+            flex-wrap: wrap;
+        }
+        
+        .status-item {
+            text-align: center;
+            padding: 0 12px;
+        }
+        
+        .status-label {
+            font-size: 11px;
+            color: #888;
+            margin-bottom: 4px;
+        }
+        
+        .status-value {
+            font-size: 20px;
+            font-weight: bold;
+            color: #4169E1;
+        }
+        
+        .highlight {
+            color: #FF6347;
+            animation: pulse 1.8s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        .grid-container {
+            width: 430px;
+            height: 435px;
+            margin: 0 auto 22px;
+            background: #BBADA0;
+            border-radius: 9px;
+            padding: 18px;
+            position: relative;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(4, 89px);
+            grid-template-rows: repeat(4, 84px);
+            gap: 13px;
+            width: 384px;
+            height: 376px;
+            background: #CDC1B4;
+            border-radius: 7px;
+            padding: 11px;
+        }
+        
+        .cell {
+            width: 83px;
+            height: 78px;
+            background: #EEE4DA59;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 30px;
+            cursor: pointer;
+            transition: all 0.09s ease;
+            user-select: none;
+            box-shadow: inset 0 0 8px rgba(0,0,0,0.07);
+        }
+        
+        .cell:hover {
+            transform: scale(1.045);
+            box-shadow: inset 0 0 12px rgba(0,0,0,0.1);
+        }
+        
+        .cell.empty {
+            background: #CCC1B4;
+            color: transparent;
+        }
+        
+        /* 数字颜色 */
+        .cell-2 { background: #EFE5DB; color: #796E65; }
+        .cell-4 { background: #ECE0CA; color: #796E65; }
+        .cell-8 { background: #EEBE7A; color: white; }
+        .cell-16 { background: #EDA361; color: white; }
+        .cell-32 { background: #EC8854; color: white; }
+        .cell-64 { background: #EB653A; color: white; }
+        .cell-128 { background: #ECC967; color: white; font-size: 26px; }
+        .cell-256 { background: #ECC257; color: white; font-size: 26px; }
+        .cell-512 { background: #EAB851; color: white; font-size: 26px; }
+        .cell-1024 { background: #EBA842; color: white; font-size: 22px; }
+        .cell-2048 { background: #ECA533; color: white; font-size: 22px; }
+        
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 22px;
+            justify-content: center;
+        }
+        
+        button {
+            padding: 11px 18px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 650;
+            transition: all 0.12s ease;
+            font-size: 14px;
+        }
+        
+        button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.125);
+        }
+        
+        .btn-move {
+            background: #4682B4;
+            color: white;
+            width: 108px;
+        }
+        
+        .btn-ai {
+            background: #9370DB;
+            color: white;
+        }
+        
+        .btn-reset {
+            background: #CD5C5C;
+            color: white;
+        }
+        
+        .inputs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 22px;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .input-group {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            background: #FFFCF5;
+            padding: 9px 13px;
+            border-radius: 6px;
+        }
+        
+        label {
+            font-size: 12px;
+            color: #665;
+            font-weight: 540;
+        }
+        
+        input, select {
+            width: 118px;
+            padding: 7px 10px;
+            border: 2px solid #DDDAD2;
+            border-radius: 5px;
+            font-size: 13px;
+            outline: none;
+        }
+        
+        input:focus, select:focus {
+            border-color: #6495ED;
+        }
+        
+        .btn-set {
+            background: #556B2F;
+            color: white;
+        }
+        
+        .messages {
+            min-height: 162px;
+            padding: 16px;
+            background: #FFFFFF;
+            border: 2px solid #E8E6DF;
+            border-radius: 9px;
+            font-size: 13px;
+            line-height: 155%;
+        }
+        
+        .ai-tip {
+            background: linear-gradient(to right, #FFFFCC, #FEFFAA);
+            padding: 12px;
+            border-radius: 7px;
+            margin-top: 11px;
+            border-left: 4px solid #FFBF69;
+            color: #443311;
+            font-weight: 490;
+        }
+        
+        .hotkeys {
+            margin-top: 18px;
+            padding: 14px;
+            background: #FAFAF7;
+            border-radius: 8px;
+            font-size: 12px;
+            line-height: 168%;
+        }
+        
+        .blocked-demo {
+            display: inline-block;
+            background: #DC143C22;
+            padding: 3px 7px;
+            border-radius: 4px;
+            border: 1px dashed #DC143C;
+            margin: 0 4px;
+        }
+        
+        @media (max-width: 880px) {
+            .container { padding: 18px; }
+            .grid-container { width: 348px; height: 352px; padding: 15px; }
+            .grid { width: 312px; height: 304px; grid-template-columns: repeat(4, 70px); grid-template-rows: repeat(4, 68px); }
+            .cell { width: 668px; height: 558px; font-size: 265px; }
+            .controls, .inputs { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔒 2048 物理阻塞版</h1>
+            <p class="subtitle">数字不穿墙 · 不循环 · 真实物理移动</p>
+        </header>
+        
+        <div class="status-bar">
+            <div class="status-item">
+                <div class="status-label">📊 当前分数</div>
+                <div class="status-value" id="score">0</div>
+            </div>
+            <div class="status-item">
+                <div class="status-label">🔄 下一个数字</div>
+                <div class="status-value" id="nextNum">2</div>
+            </div>
+            <div class="status-item">
+                <div class="status-label">🏆 最大数字</div>
+                <div class="status-value" id="maxTile">0</div>
+            </div>
+        </div>
+        
+        <div class="grid-container">
+            <!-- 坐标标签 -->
+            <div style="position:absolute; top:23px; left:32px; width:386px; display:flex; justify-content:space-between;">
+                <span style="font-size:12px; color:#554;">0</span><span style="font-size:12px; color:#554;">1</span><span style="font-size:12px; color:#554;">2</span><span style="font-size:12px; color:#554;">3</span>
+            </div>
+            <div style="position:absolute; left:25px; top:46px; height:338px; display:flex; flex-direction:column; justify-content:space-between;">
+                <span style="font-size:12px; color:#554;">0</span><span style="font-size:12px; color:#554;">1</span><span style="font-size:12px; color:#554;">2</span><span style="font-size:12px; color:#554;">3</span>
+            </div>
+            <div style="position:absolute; right:296px; top:46px; height:338px; display:flex; flex-direction:column; justify-content:space-between;">
+                <span style="font-size:12px; color:#554;">0</span><span style="font-size:12px; color:#554;">1</span><span style="font-size:12px; color:#554;">2</span><span style="font-size:12px; color:#554;">3</span>
+            </div>
+            <div style="position:absolute; bottom:33px; left:32px; width:386px; display:flex; justify-content:space-between;">
+                <span style="font-size:12px; color:#554;">0</span><span style="font-size:12px; color:#554;">1</span><span style="font-size:12px; color:#554;">2</span><span style="font-size:12px; color:#554;">3</span>
+            </div>
+            
+            <!-- 棋盘 -->
+            <div class="grid" id="grid"></div>
+        </div>
+        
+        <div class="controls">
+            <button class="btn-move" onclick="move('w')">⬆️ 向上</button>
+            <button class="btn-move" onclick="move('s')">⬇️ 向下</button>
+            <button class="btn-move" onclick="move('a')">⬅️ 向左</button>
+            <button class="btn-move" onclick="move('d')">➡️ 向右</button>
+            <button class="btn-ai" onclick="askAI()">🧠 AI 建议</button>
+            <button class="btn-reset" onclick="resetAll()">🔄 重置</button>
+        </div>
+        
+        <div class="inputs">
+            <div class="input-group">
+                <label>行:</label>
+                <input type="number" id="row" min="0" max="3" placeholder="0-3">
+            </div>
+            <div class="input-group">
+                <label>列:</label>
+                <input type="number" id="col" min="0" max="3" placeholder="0-3">
+            </div>
+            <div class="input-group">
+                <label>数字:</label>
+                <select id="val">
+                    <option value="next">自动 (2/4/8/16)</option>
+                    <option value="2">2</option>
+                    <option value="4">4</option>
+                    <option value="8">8</option>
+                    <option value="16">16</option>
+                    <option value="0">清空</option>
+                </select>
+            </div>
+            <button class="btn-set" onclick="setManual()">📍 设置</button>
+        </div>
+        
+        <div class="messages">
+            <strong>🔒 物理移动规则：</strong><br>
+            • 数字只能沿直线移动，<span class="blocked-demo">遇阻即停</span>，绝不穿透<br>
+            • 向下移动时，底部数字不会跳回顶部，反之亦然<br>
+            • 只有相邻且<span class="blocked-demo">无阻碍</span>的相同数字才能合并<br>
+            • 手动添加数字：2/4/8/16 → 合并可产生更大数字<br><br>
+            
+            <div id="msg">🤖 点击【AI 建议】获取最佳移动方向...</div>
+        </div>
+        
+        <div class="hotkeys">
+            <strong>⌨️ 快捷键：</strong><br>
+            W / ↑ = 向上 S / ↓ = 向下 A / ← = 向左 D / → = 向右<br>
+            H = AI 建议 R = 重置 ESC = 取消输入
+        </div>
+    </div>
+
+    <script>
+    // ===== 游戏核心 =====
+    let board = [
+        [0, 0, 0, 0],
+        [0, 0, 0, 0],
+        [0, 0, 0, 0],
+        [0, 0, 0, 0]
+    ];
+    let score = 0;
+    let maxTile = 0;
+    const nums = [2, 4, 8, 16, 32, 64];
+    let nextIdx = 0;
+    
+    // 初始化
+    function init() {
+        drawBoard();
+        document.addEventListener('keydown', keyHandler);
+        updateUI();
+    }
+    
+    // 绘制棋盘
+    function drawBoard() {
+        const el = document.getElementById('grid');
+        el.innerHTML = '';
+        
+        for (let r = 0; r < 4; r++) {
+            for (let c = 0; c < 4; c++) {
+                const cell = document.createElement('div');
+                const v = board[r][c];
+                
+                cell.className = v === 0 ? 'cell empty' : `cell cell-${v}`;
+                cell.textContent = v === 0 ? '' : v;
+                cell.onclick = () => clickCell(r, c);
+                
+                el.appendChild(cell);
+            }
+        }
+    }
+    
+    // 格子点击
+    function clickCell(r, c) {
+        const sel = document.getElementById('val').value;
+        
+        if (sel === 'next') {
+            placeNum(r, c);
+        } else if (sel === '0') {
+            clearCell(r, c);
+        } else {
+            const n = Number(sel);
+            if ([2,4,8,16].includes(n)) {
+                board[r][c] = n;
+                drawBoard();
+                updateUI();
+                checkMax();
+            }
+        }
+    }
+    
+    // 放置数字
+    function placeNum(r, c, n = null) {
+        if (n === null) {
+            n = nums[nextIdx];
+            nextIdx = (nextIdx + 1) % 4;
+        }
+        board[r][c] = n;
+        drawBoard();
+        updateUI();
+        checkMax();
+    }
+    
+    // 清空格子
+    function clearCell(r, c) {
+        board[r][c] = 0;
+        drawBoard();
+        updateUI();
+    }
+    
+    // ================ 【核心修正】推动合并逻辑 ================
+    function move(dir) {
+        const oldBoard = JSON.parse(JSON.stringify(board));
+        let changed = false;
+        
+        if (dir === 'w') {
+            for (let c = 0; c < 4; c++) {
+                const res = processCol(c, 'up');
+                if (res.changed) changed = true;
+                for (let r = 0; r < 4; r++) board[r][c] = res.col[r];
+            }
+        }
+        else if (dir === 's') {
+            for (let c = 0; c < 4; c++) {
+                const res = processCol(c, 'down');
+                if (res.changed) changed = true;
+                for (let r = 0; r < 4; r++) board[r][c] = res.col[r];
+            }
+        }
+        else if (dir === 'a') {
+            for (let r = 0; r < 4; r++) {
+                const res = processRow(r, 'left');
+                if (res.changed) changed = true;
+                board[r] = res.row;
+            }
+        }
+        else if (dir === 'd') {
+            for (let r = 0; r < 4; r++) {
+                const res = processRow(r, 'right');
+                if (res.changed) changed = true;
+                board[r] = res.row;
+            }
+        }
+        
+        drawBoard();
+        updateUI();
+        checkMax();
+        
+        if (!changed) {
+            setMsg('⚠️ 这个方向无法移动（被阻挡或无变化）', 'note');
+        }
+    }
+    
+    // 处理列：先紧凑 → 合并 → 再紧凑
+    function processCol(col, direction) {
+        // 1. 提取非零数字（按移动方向顺序）
+        const nonZero = [];
+        if (direction === 'up') {
+            for (let r = 0; r < 4; r++) {
+                if (board[r][col] !== 0) nonZero.push(board[r][col]);
+            }
+        } else {
+            for (let r = 3; r >= 0; r--) {
+                if (board[r][col] !== 0) nonZero.push(board[r][col]);
+            }
+        }
+        
+        // 2. 合并相邻相同数字（从移动方向起点开始）
+        const merged = [];
+        let i = 0;
+        while (i < nonZero.length) {
+            if (i + 1 < nonZero.length && nonZero[i] === nonZero[i + 1]) {
+                merged.push(nonZero[i] * 2);
+                score += nonZero[i] * 2;
+                i += 2; // 跳过下一个，防重复合并
+            } else {
+                merged.push(nonZero[i]);
+                i += 1;
+            }
+        }
+        
+        // 3. 构建新列（合并后数字在前，补0在后）
+        const newCol = Array(4).fill(0);
+        if (direction === 'up') {
+            for (let idx = 0; idx < merged.length; idx++) {
+                newCol[idx] = merged[idx];
+            }
+        } else {
+            for (let idx = 0; idx < merged.length; idx++) {
+                newCol[3 - idx] = merged[idx];
+            }
+        }
+        
+        // 检查是否改变
+        const orig = [];
+        for (let r = 0; r < 4; r++) orig.push(board[r][col]);
+        return { col: newCol, changed: orig.join() !== newCol.join() };
+    }
+    
+    // 处理行：先紧凑 → 合并 → 再紧凑
+    function processRow(row, direction) {
+        // 1. 提取非零数字
+        const nonZero = [];
+        if (direction === 'left') {
+            for (let c = 0; c < 4; c++) {
+                if (board[row][c] !== 0) nonZero.push(board[row][c]);
+            }
+        } else {
+            for (let c = 3; c >= 0; c--) {
+                if (board[row][c] !== 0) nonZero.push(board[row][c]);
+            }
+        }
+        
+        // 2. 合并
+        const merged = [];
+        let i = 0;
+        while (i < nonZero.length) {
+            if (i + 1 < nonZero.length && nonZero[i] === nonZero[i + 1]) {
+                merged.push(nonZero[i] * 2);
+                score += nonZero[i] * 2;
+                i += 2;
+            } else {
+                merged.push(nonZero[i]);
+                i += 1;
+            }
+        }
+        
+        // 3. 构建新行
+        const newRow = Array(4).fill(0);
+        if (direction === 'left') {
+            for (let idx = 0; idx < merged.length; idx++) {
+                newRow[idx] = merged[idx];
+            }
+        } else {
+            for (let idx = 0; idx < merged.length; idx++) {
+                newRow[3 - idx] = merged[idx];
+            }
+        }
+        
+        return { row: newRow, changed: board[row].join() !== newRow.join() };
+    }
+    
+    // AI 建议（保持原有策略，逻辑同步更新）
+    function askAI() {
+        const dirs = ['w', 's', 'a', 'd'];
+        let bestDir = 'w';
+        let bestScore = -Infinity;
+        
+        for (const dir of dirs) {
+            const testGame = JSON.parse(JSON.stringify(board));
+            const testScore = simulateMove(testGame, dir);
+            if (testScore > bestScore) {
+                bestScore = testScore;
+                bestDir = dir;
+            }
+        }
+        
+        const dirMap = { w: '⬆️ 向上', s: '⬇️ 向下', a: '⬅️ 向左', d: '➡️ 向右' };
+        const reasons = {
+            w: '向上推挤可整理列结构，为大数字留出顶部空间',
+            s: '向下沉淀将数字压到底部，形成稳固基础层',
+            a: '向左压缩是最优布局方向，利于构建金字塔结构',
+            d: '向右推移可清理左侧区域，为后续重组做准备'
+        };
+        
+        setMsg(`🤖 <strong>推荐：${dirMap[bestDir]}</strong><br>💡 ${reasons[bestDir]}`, 'tip');
+    }
+    
+    // 模拟移动（供AI评分用，使用同样规则）
+    function simulateMove(tempBoard, dir) {
+        let tempScore = 0;
+        
+        if (dir === 'w') {
+            for (let c = 0; c < 4; c++) {
+                const nonZero = [];
+                for (let r = 0; r < 4; r++) {
+                    if (tempBoard[r][c] !== 0) nonZero.push(tempBoard[r][c]);
+                }
+                const merged = mergeForAI(nonZero);
+                for (let r = 0; r < 4; r++) {
+                    tempBoard[r][c] = r < merged.length ? merged[r] : 0;
+                }
+            }
+        } else if (dir === 's') {
+            for (let c = 0; c < 4; c++) {
+                const nonZero = [];
+                for (let r = 3; r >= 0; r--) {
+                    if (tempBoard[r][c] !== 0) nonZero.push(tempBoard[r][c]);
+                }
+                const merged = mergeForAI(nonZero);
+                for (let r = 3; r >= 0; r--) {
+                    tempBoard[r][c] = (3 - r) < merged.length ? merged[3 - r] : 0;
+                }
+            }
+        } else if (dir === 'a') {
+            for (let r = 0; r < 4; r++) {
+                const nonZero = [];
+                for (let c = 0; c < 4; c++) {
+                    if (tempBoard[r][c] !== 0) nonZero.push(tempBoard[r][c]);
+                }
+                const merged = mergeForAI(nonZero);
+                for (let c = 0; c < 4; c++) {
+                    tempBoard[r][c] = c < merged.length ? merged[c] : 0;
+                }
+            }
+        } else if (dir === 'd') {
+            for (let r = 0; r < 4; r++) {
+                const nonZero = [];
+                for (let c = 3; c >= 0; c--) {
+                    if (tempBoard[r][c] !== 0) nonZero.push(tempBoard[r][c]);
+                }
+                const merged = mergeForAI(nonZero);
+                for (let c = 3; c >= 0; c--) {
+                    tempBoard[r][c] = (3 - c) < merged.length ? merged[3 - c] : 0;
+                }
+            }
+        }
+        
+        // 评分逻辑保持不变
+        let emptyCount = 0;
+        for (let r = 0; r < 4; r++) {
+            for (let c = 0; c < 4; c++) {
+                if (tempBoard[r][c] === 0) emptyCount++;
+            }
+        }
+        return emptyCount * 300;
+    }
+    
+    function mergeForAI(arr) {
+        const out = [];
+        let i = 0;
+        while (i < arr.length) {
+            if (i + 1 < arr.length && arr[i] === arr[i + 1]) {
+                out.push(arr[i] * 2);
+                i += 2;
+            } else {
+                out.push(arr[i]);
+                i++;
+            }
+        }
+        return out;
+    }
+    
+    // 检查最大数字
+    function checkMax() {
+        let m = 0;
+        for (let r = 0; r < 4; r++) {
+            for (let c = 0; c < 4; c++) {
+                if (board[r][c] > m) m = board[r][c];
+            }
+        }
+        maxTile = m;
+        
+        const el = document.getElementById('maxTile');
+        el.textContent = maxTile;
+        if (maxTile >= 1024) {
+            el.classList.add('highlight');
+        } else {
+            el.classList.remove('highlight');
+        }
+    }
+    
+    // 更新界面
+    function updateUI() {
+        document.getElementById('score').textContent = score;
+        document.getElementById('nextNum').textContent = nums[nextIdx];
+    }
+    
+    // 设置消息
+    function setMsg(txt, typ) {
+        const el = document.getElementById('msg');
+        el.innerHTML = txt;
+        el.style.background = typ === 'tip' ? 'linear-gradient(to right, #feffcf, #ffffaa)' : 
+                             typ === 'note' ? '#fff4f4' : '#eff7ff';
+        el.style.borderLeft = typ === 'tip' ? '4px solid #FFC857' : 
+                              typ === 'note' ? '4px solid #FF6464' : '4px solid #659BED';
+    }
+    
+    // 手动设置
+    function setManual() {
+        const r = Number(document.getElementById('row').value);
+        const c = Number(document.getElementById('col').value);
+        const sel = document.getElementById('val').value;
+        
+        if (isNaN(r) || isNaN(c) || r < 0 || r > 3 || c < 0 || c > 3) {
+            setMsg('❌ 行和列必须是 0-3 的整数', 'note');
+            return;
+        }
+        
+        if (sel === 'next') {
+            placeNum(r, c);
+        } else if (sel === '0') {
+            clearCell(r, c);
+        } else {
+            const n = Number(sel);
+            placeNum(r, c, n);
+        }
+        
+        document.getElementById('row').value = '';
+        document.getElementById('col').value = '';
+    }
+    
+    // 重置
+    function resetAll() {
+        board = [[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]];
+        score = 0;
+        maxTile = 0;
+        nextIdx = 0;
+        drawBoard();
+        updateUI();
+        setMsg('🔄 已重置！点击格子或使用表单添加数字开始', 'note');
+    }
+    
+    // 键盘事件
+    function keyHandler(e) {
+        const k = e.key.toLowerCase();
+        if (k === 'w' || k === 'arrowup') { e.preventDefault(); move('w'); }
+        else if (k === 's' || k === 'arrowdown') { e.preventDefault(); move('s'); }
+        else if (k === 'a' || k === 'arrowleft') { e.preventDefault(); move('a'); }
+        else if (k === 'd' || k === 'arrowright') { e.preventDefault(); move('d'); }
+        else if (k === 'h') { e.preventDefault(); askAI(); }
+        else if (k === 'r') { e.preventDefault(); resetAll(); }
+        else if (k === 'escape') {
+            document.getElementById('row').blur();
+            document.getElementById('col').blur();
+        }
+    }
+    
+    // 启动
+    window.onload = init;
+</script>
+</body>
+</html>
