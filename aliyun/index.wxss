@@ -1,0 +1,70 @@
+/* 按钮容器布局 */
+.btn-container {
+    margin: 20rpx;
+    width: 90%;
+  }
+  
+  /* 数据按钮样式 */
+  .data-btn {
+    display: flex;
+    align-items: center;
+    padding: 30rpx;
+    background: #f5f5f5;
+    border-radius: 16rpx;
+    border: none;
+    min-height: 120rpx;  /* 添加最小高度保证布局稳定 */
+  }
+  
+  /* 图标样式（控制图片尺寸）*/
+  .btn-icon {
+    width: 60rpx;        /* 调整为合理尺寸 */
+    height: 60rpx;
+    margin-right: 20rpx;
+    object-fit: contain;  /* 保持图片比例 */
+  }
+  
+  /* 文字区域 */
+  .btn-text {
+    font-size: 32rpx;
+    color: #333;
+    flex: 1;             /* 自动填充剩余空间 */
+    min-width: 120rpx;    /* 防止文字换行挤压 */
+  }
+  
+  /* 数值样式 */
+  .btn-value {
+    font-size: 28rpx;
+    color: #666;
+    margin-left: auto;    /* 数值靠右对齐 */
+  }
+  
+  /* 状态颜色 */
+  .normal-status {
+    background: #e8f5e9 !important;
+    border: 1rpx solid #81c784; /* 添加边框提升状态可视性 */
+  }
+  
+  .abnormal-status {
+    background: #ffebee !important;
+    border: 1rpx solid #e57373;
+  }
+  
+  /* 新增：响应式布局适配 */
+  @media (max-width: 480px) {
+    .btn-container {
+      width: 100%;
+    }
+    
+    .btn-icon {
+      width: 40rpx;
+      height: 40rpx;
+    }
+    
+    .btn-text {
+      font-size: 28rpx;
+    }
+    
+    .btn-value {
+      font-size: 24rpx;
+    }
+  }

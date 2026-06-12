@@ -1,0 +1,17 @@
+/* pages/cart/cart.wxss */
+page{
+  padding: 10px;
+  box-sizing: border-box;
+}
+input{
+  border: 1px solid gainsboro;
+}
+.map-body map{
+  width: 1100rpx;
+  height: 1300rpx;
+}
+.date-logo image{
+  width: 100rpx;
+  height: 100rpx;
+}
+button{margin-top:10px;}

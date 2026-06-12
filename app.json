@@ -1,0 +1,58 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/cart/cart",
+    "pages/profile/profile",
+    "pages/demo01/demo01",
+    "pages/change/change",
+    "pages/home/home",
+    "pages/login/login",
+    "pages/me/me",
+    "pages/me2/me2",
+    "pages/register/register"
+
+  ],
+  "window": {
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#d43c33",
+    "navigationBarTitleText": "生产环境安全检测",
+    "navigationBarTextStyle": "white"
+  },
+  "tabBar": {
+    "color": "black",
+    "selectedColor": "#d43c33",
+    "borderStyle": "black",
+    "backgroundColor": "#ffffff",
+    "position": "bottom",
+    "list": [
+      {
+           "text": "我的",
+        "pagePath": "pages/home/home",
+        "iconPath": "/picture/profile.png",
+        "selectedIconPath": "/picture/profile-active.png"
+      },
+     
+      {
+         "text": "首页",
+        "pagePath": "pages/index/index",
+        "iconPath": "/picture/index.png",
+        "selectedIconPath": "/picture/index-active.jpg"
+      }
+    ]
+  },
+  "permission":{
+  "scope.userLocation":{
+    "desc":"你的位置信息需要被收集"
+  }
+},
+"requiredPrivateInfos":[
+  "onLocationChange",
+  "getLocation",
+  "startLocationUpdate"
+],
+  "style": "v2",
+  "componentFramework": "glass-easel",
+  "lazyCodeLoading": "requiredComponents",
+  "sitemapLocation": "sitemap.json"
+}
+

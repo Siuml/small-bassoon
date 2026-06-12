@@ -1,0 +1,4 @@
+<view class="map-body" >
+<map latitude="{{onenetData.data[5].value}}" longitude="{{onenetData.data[3].value}}" scale='20' >
+  <view>宠物位置：<text style="color:red">（经度：{{onenetData.data[3].value}}，维度：{{onenetData.data[5].value}}）</text></view>
+</map></view>

@@ -1,0 +1,12 @@
+<view class="btn-container">
+  <button class="data-btn {{status ? 'normal-status' : 'abnormal-status'}}">
+    <!-- 图标部分 -->
+    <image class="btn-icon" src="/images/temp-icon.png" mode="aspectFit" />
+    
+    <!-- 文字描述 -->
+    <text class="btn-text">温度</text>
+    
+    <!-- 数值显示 -->
+    <text class="btn-value">25.6℃</text>
+  </button>
+</view>
